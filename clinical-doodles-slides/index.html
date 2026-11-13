@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7efe0">
+  <title>Neuroparenting — Clinical Doodles</title>
+  <style>
+    @font-face { font-family:"Honey Jar"; src:url("assets/HoneyJar.otf") format("opentype"); font-style:normal; font-weight:400; font-display:swap; }
+    @font-face { font-family:"Nunito"; src:url("assets/Nunito-Variable.ttf") format("truetype"); font-style:normal; font-weight:200 1000; font-display:swap; }
+    :root { color-scheme: light; --ink: #3d271e; --paper: #f7efe0; --accent: #8d5944; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { background: var(--paper); color: var(--ink); font-family: "Nunito", system-ui, sans-serif; }
+    h1, h2, h3, .clinical-title, .principle-copy h2 { font-family:"Honey Jar","Nunito",sans-serif; font-weight:400; letter-spacing:0; }
+    .stage { position: relative; width: 100vw; height: 100dvh; display: grid; place-items: center; background: #e9dfcf; }
+    .slide { display: none; width: min(100vw, 177.78vh); aspect-ratio: 16 / 9; position: relative; background: var(--paper); box-shadow: 0 14px 50px #4a362522; }
+    .slide.active { display: block; }
+    .slide img, .slide video { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .signal-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .page-number { position: fixed; z-index: 8; right: 16px; bottom: max(14px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 11px; border: 1px solid #8d735e; border-radius: 18px; background: rgba(250, 243, 226, .92); color: #4b352a; font-size: 14px; font-weight: 650; letter-spacing: .03em; font-variant-numeric: tabular-nums; box-shadow: 0 2px 8px #3e2e201f; }
+    .page-number select { padding: 3px 4px; border: 0; border-radius: 12px; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; text-overflow: ellipsis; }
+    .page-number select:focus-visible { outline: 2px solid #8d735e; outline-offset: 1px; }
+    .page-number select option { background: #faf3e2; color: #4b352a; }
+    .page-total { white-space: nowrap; opacity: .75; }
+    .toolbar { position: fixed; z-index: 5; inset: auto 0 0; display: flex; align-items: center; justify-content: center; gap: 14px; padding: 12px 16px max(12px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, #2e211bb8); color: white; opacity: .28; transition: opacity .2s ease; }
+    .toolbar:hover, .toolbar:focus-within { opacity: 1; }
+    button { font-family:"Nunito",sans-serif; border: 1px solid #ffffff99; border-radius: 999px; color: white; background: #38271dcc; min-width: 42px; min-height: 42px; padding: 8px 14px; font-size: 16px; cursor: pointer; }
+    button:hover { background: #674733; }
+    button:focus-visible { outline: 3px solid #ffd87b; outline-offset: 2px; }
+
+
+    .art-bg { position:absolute; inset:0; z-index:0; width:100%; height:100%; object-fit:cover; }
+    .neuro-intro {
+      container-type: inline-size;
+      overflow: hidden;
+      isolation: isolate;
+      background: #f8eed9 url("assets/04-clinical-backdrop.png") center / cover no-repeat;
+    }
+    .neuro-intro .intro-eeg { position: absolute; top: 14%; left: 46%; width: 51%; height: 72%; }
+    .neuro-intro .intro-eeg-label {
+      position: absolute;
+      left: 85.4%;
+      top: 41%;
+      transform: translateX(-50%);
+      color: #483126;
+      font: 400 3cqw/1 "Honey Jar", "Nunito", sans-serif;
+    }
+    .neuro-intro:not(.eeg-revealed) :is(.intro-eeg, .intro-eeg-label),
+    .neuro-intro.step-revealed :is(.intro-eeg, .intro-eeg-label) { visibility: hidden; }
+    .neuro-intro .intro-copy { position:absolute; z-index:3; left:8%; top:35%; width:34%; }
+    .neuro-intro .intro-copy h1 { margin:0; color:#483126; font-size:6.75cqw; line-height:1.05; text-shadow:0 .13cqw #fff8e9; }
+    .neuro-intro .intro-copy p { margin:3.8cqw 0 0; max-width:94%; font-size:2.15cqw; font-weight:650; line-height:1.35; color:#5c493b; text-wrap:pretty; }
+    .neuro-intro .intro-circle {
+      position: absolute;
+      width: 24.4%;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: multiply;
+    }
+    .neuro-intro .intro-brain {
+      z-index: 1;
+      left: 71.375%; top: 35.9%;
+      --offset-y: -6.875cqw;
+      --label-y: -2%;
+    }
+    .neuro-intro .intro-psych {
+      left: 62.5%; top: 60.1%;
+      --offset-x: -7cqw; --offset-y: 6.25cqw;
+      --label-x: 44%; --label-y: 94%;
+    }
+    .neuro-intro .intro-edu {
+      left: 80.25%; top: 60.1%;
+      --offset-x: 6.875cqw; --offset-y: 6.25cqw;
+      --label-x: 56%; --label-y: 94%;
+    }
+    .neuro-intro .intro-illustration {
+      opacity: .88;
+    }
+    .neuro-intro .intro-label {
+      position: absolute;
+      left: var(--label-x, 50%);
+      top: var(--label-y);
+      transform: translateX(-50%);
+      padding: .2cqw .75cqw;
+      border-radius: 2cqw;
+      background: #fff8e7e8;
+      color: #493329;
+      font-size: 1.55cqw;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .neuro-intro .synthesis-arrow { position:absolute; z-index:2; inset:0; width:100%; height:100%; pointer-events:none; filter:drop-shadow(0 1px 1px #fff2d9); }
+    .neuro-intro .intro-spark {
+      position: absolute;
+      z-index: 2;
+      left: 71.375%;
+      top: 48.9%;
+      width: 4.8%;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, #fff9de 0%, #ffdb7c88 15%, transparent 39%);
+      opacity: .9;
+      pointer-events: none;
+    }
+    .neuro-intro:not(.step-revealed) :is(.intro-circle, .intro-spark, .synthesis-arrow, .intro-copy p) { visibility:hidden; }
+    @media (prefers-reduced-motion: no-preference) {
+      .neuro-intro.step-revealed .intro-circle { animation: intro-converge 1.55s cubic-bezier(.3,.1,.2,1) both; }
+      .neuro-intro.step-revealed .intro-spark { animation: intro-twinkle 1.4s 1.56s ease-in-out both; }
+      .neuro-intro.step-revealed .synthesis-arrow { animation: intro-draw-arrow .75s 2.12s ease-out both; }
+      .neuro-intro.step-revealed .intro-copy p { animation: intro-show-description .4s 2.91s ease-out both; }
+    }
+    @keyframes intro-converge {
+      0%, 22% { transform: translate(calc(-50% + var(--offset-x, 0px)), calc(-50% + var(--offset-y, 0px))); }
+      0% { opacity: 0; }
+      22%, 100% { opacity: 1; }
+    }
+    @keyframes intro-twinkle {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.7); }
+      27%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+      49% { opacity: .36; transform: translate(-50%, -50%) scale(.9); }
+      100% { opacity: .9; }
+    }
+    @keyframes intro-draw-arrow {
+      from { clip-path: inset(0 65% 0 0); }
+      to { clip-path: inset(0); }
+    }
+    @keyframes intro-show-description {
+      from { visibility: hidden; opacity: 0; transform: translateY(.7cqw); }
+      to { visibility: visible; opacity: 1; transform: translateY(0); }
+    }
+    .slide video:is([data-play-on-enter], [data-play-with-pauses]),
+    .slide .video-intro-frame { position: absolute; inset: 0; object-fit: cover; }
+    .slide .video-has-started + .video-intro-frame { visibility: hidden; }
+    .insights-slide::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: #faecd9 url("assets/insights-clean-plate.png") center / 100% 100% no-repeat;
+      clip-path: inset(var(--insights-cut, 32%) 0 0);
+      pointer-events: none;
+    }
+    .insights-slide[data-insights-step="1"] { --insights-cut: var(--insights-first); }
+    .insights-slide[data-insights-step="2"] { --insights-cut: var(--insights-second); }
+    .insights-slide[data-insights-step="3"]::after { display: none; }
+    .fff-slide { container-type: inline-size; }
+    .fff-labels {
+      position: absolute;
+      inset: auto 0 1.2%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      justify-items: center;
+      color: #493329;
+      font: 400 3.2cqw/1 "Honey Jar", "Nunito", sans-serif;
+      text-shadow: 0 1px #fff8ea;
+      pointer-events: none;
+    }
+    .principle-map { position:relative; overflow:hidden; background:#a6b18b; padding:0; }
+    .principle-map .art-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+    .principle-map .map-title { position:absolute; z-index:2; top:5%; left:0; right:0; text-align:center; color:#3d3529; font-family:"Honey Jar","Nunito",sans-serif; font-size:clamp(34px,3.4vw,55px); font-weight:800; letter-spacing:-.025em; text-shadow:0 1px 0 #f8f0dd; }
+    .principle-map .map-grid { position:absolute; z-index:1; left:7%; right:7%; top:18%; bottom:8%; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:repeat(3,minmax(0,1fr)); gap:3% 2.5%; }
+    .principle-map .map-item { display:flex; align-items:center; gap:15px; padding:12px 18px; color:#46362b; background:rgba(250,243,225,.91); border:2px solid #9c7959; border-radius:13px 8px 12px 9px; box-shadow:0 4px 9px #31402a2b; font-family:"Nunito",sans-serif; font-size:clamp(18px,1.75vw,28px); line-height:1.1; font-weight:700; }
+    .principle-map .map-item:nth-child(3n + 1) { transform:rotate(-.7deg); }
+    .principle-map .map-item:nth-child(3n + 2) { transform:rotate(.5deg); }
+    .principle-map .map-item:nth-child(3n) { transform:rotate(-.35deg); }
+    .principle-map .map-item:nth-child(2), .principle-map .map-item:nth-child(8) { background:rgba(239,229,204,.94); }
+    .principle-map .map-number { flex:0 0 38px; width:38px; height:38px; display:grid; place-items:center; border-radius:50%; color:#fff7e5; background:#a85e44; border:2px solid #784834; font-size:17px; line-height:1; font-weight:800; }
+    @media (max-width: 850px) { .principle-map .map-grid { left:4%; right:4%; top:17%; bottom:7%; gap:2% 1.5%; } .principle-map .map-item { gap:8px; padding:8px 9px; font-size:clamp(14px,2vw,19px); } .principle-map .map-number { flex-basis:30px; width:30px; height:30px; font-size:14px; } }    .plasticity-slide { background:#e9dff0; padding:0; }
+    .plasticity-slide .plasticity-copy { position:absolute; z-index:1; left:7%; top:13%; width:43%; }
+    .plasticity-slide .principle-number { display:inline-block; margin-bottom:17px; color:#a35e43; font-size:clamp(18px,1.5vw,25px); font-weight:750; letter-spacing:.08em; text-transform:uppercase; }
+    .plasticity-slide .quote { margin-top:28px; padding-left:23px; border-left:5px solid #be795a; color:#59473b; font-size:clamp(22px,1.9vw,32px); line-height:1.43; }    @media (max-width: 600px) { .toolbar { opacity: .95; } }
+    @media (prefers-reduced-motion: reduce) { .sun-overlay { display: none; } }
+    .attention-demo { position: absolute; inset: 0; overflow: hidden; isolation: isolate; background: #f4ecda; }
+    .demo-bg, .demo-change { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+    .demo-change { opacity: 0; pointer-events: none; transition: opacity var(--fade, .3s) ease; }
+    .patch-clock { clip-path: inset(2% 3% 58% 75%); }
+    .patch-board { clip-path: inset(4% 27% 53% 8%); }
+    .patch-cloth { clip-path: inset(59% 0 0 0); }
+    .patch-eraser { clip-path: inset(41% 82% 50% 9%); }
+    .attention-demo.changed-clock .patch-clock, .attention-demo.changed-board .patch-board, .attention-demo.changed-cloth .patch-cloth, .attention-demo.changed-eraser .patch-eraser { opacity: 1; }
+    /* Posisi cangkir diatur JavaScript per frame (left/top/--s) agar gerakannya mulus */
+    .demo-cup { position: absolute; z-index: 4; left: 50%; top: 58%; width: 16%; aspect-ratio: 1; transform: translateX(-50%) scale(var(--s, 1)); transform-origin: 50% 92%; will-change: left, top, transform; pointer-events: none; }
+    .demo-cup img { width: 100%; height: 100%; object-fit: contain; }
+    .demo-ball { position: absolute; z-index: 3; left: 50%; top: 81%; width: 3.3%; min-width: 22px; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%,-50%); background: radial-gradient(circle at 32% 28%, #fff0d8 0 8%, #f65d48 22%, #bb2527 75%); box-shadow: 0 3px 8px #49262077, inset -4px -5px 8px #81181c66; transition: opacity .2s ease; }
+    .demo-start { position: absolute; z-index: 8; left: 3%; bottom: 9%; min-width: 150px; }
+    .demo-start:disabled { opacity: .6; cursor: default; }
+    .demo-status { position: absolute; z-index: 7; top: 3.5%; left: 50%; max-width: 60%; padding: 8px 18px; border: 1px solid #a9794d; border-radius: 14px; color: #4a3428; background: #fff8e8f2; box-shadow: 0 3px 10px #34271d28; font-size: clamp(15px,1.65vw,23px); font-weight: 700; text-align: center; opacity: 0; transform: translateX(-50%); transition: opacity .25s ease, top .3s ease; pointer-events: none; }
+    .demo-status.visible { opacity: 1; }
+    .demo-status.low { top: 52%; max-width: 80%; }
+    .demo-status.ask { border: 2px solid #8e4f35; background: #fff1d2; font-size: clamp(20px,2.5vw,36px); animation: demo-pulse 1.6s ease-in-out infinite; }
+    @keyframes demo-pulse { 50% { box-shadow: 0 0 0 8px #f6a53133, 0 3px 10px #34271d28; } }
+    .demo-tags span { position: absolute; z-index: 5; top: 53%; padding: 3px 12px; border-radius: 10px; color: #fff8e8; background: #6b4a37; font-size: clamp(13px,1.3vw,19px); font-weight: 700; letter-spacing: .04em; transform: translate(-50%,-50%) translateY(6px); opacity: 0; transition: opacity .3s ease, transform .3s ease; }
+    .attention-demo.show-tags .demo-tags span { opacity: 1; transform: translate(-50%,-50%); }
+    .demo-ring { position: absolute; z-index: 6; border: 4px dashed #c4372b; border-radius: 26px; opacity: 0; transform: scale(.94); transition: opacity .4s ease, transform .4s ease; pointer-events: none; }
+    .demo-ring span { position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%); white-space: nowrap; padding: 3px 12px; border-radius: 10px; color: #fff8e8; background: #c4372b; font-size: clamp(13px,1.3vw,19px); font-weight: 700; }
+    .ring-board { left: 7%; top: .5%; width: 66%; height: 52%; }
+    .ring-clock { left: 74.5%; top: 1%; width: 24.5%; height: 43.5%; border-radius: 50%; }
+    .ring-clock span { bottom: auto; top: 101%; }
+    .ring-cloth { left: 1.5%; top: 59%; width: 97%; height: 39%; }
+    .ring-cloth span { bottom: auto; top: 6%; left: 12%; }
+    .ring-eraser { left: 8%; top: 40%; width: 12%; height: 10%; border-radius: 12px; }
+    .ring-eraser span { bottom: auto; top: 102%; left: 50%; }
+    .attention-demo.show-rings .demo-ring { opacity: 1; transform: none; }
+    .demo-button { font-family:"Nunito",sans-serif; border: 2px solid #713d2c; border-radius: 14px; min-height: 48px; padding: 9px 20px; color: #fff8e8; background: #8e4f35; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 0 #593522; }
+    .demo-button:hover { background: #a45b39; }
+    .demo-button:focus-visible { outline: 3px solid #316b68; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .demo-status.ask { animation: none; } }
+    @media (max-width: 700px) { .demo-cup { width: 19%; } .demo-start { bottom: 9.5%; } }
+    .principle-slide { position:relative; overflow:hidden; background:#f5ead7; }
+    .principle-slide .art-bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+    .principle-copy { position:absolute; z-index:1; top:15%; width:39%; color:#493329; }
+    .principle-copy.left { left:6%; }
+    .principle-copy.right { left:56%; }
+    .principle-copy .principle-kicker { display:inline-block; margin-bottom:12px; color:#a45b40; font-size:clamp(17px,1.5vw,24px); font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+    .principle-copy h2 { margin:0; font-family:"Honey Jar","Nunito",sans-serif; font-weight:400; font-size:clamp(32px,3.1vw,50px); line-height:1.04; letter-spacing:-.025em; }
+    .principle-copy .english-title { display:block; margin-top:10px; color:#7d6858; font-size:clamp(17px,1.5vw,24px); line-height:1.2; font-weight:650; }
+    .principle-copy .principle-body { margin:22px 0 0; font-size:clamp(21px,1.9vw,31px); line-height:1.4; font-weight:530; }
+    .principle-copy.paper { padding:3.2% 3.3%; background:#f9f1e4ed; box-shadow:0 8px 24px #18271a22; border:1px solid #b7977266; clip-path:polygon(1% 2%,98% 0,100% 97%,3% 100%,0 63%); }
+    .principle-slide.p12 .principle-copy { top:21%; width:42%; }
+    .principle-slide.p13 .principle-copy { top:16%; }
+    .principle-slide.p13 .principle-copy h2 { font-size:clamp(30px,2.9vw,46px); }
+    .principle-slide.p14 .principle-copy { top:17%; width:41%; }
+    .principle-slide.p15 .principle-copy { top:18%; width:38%; }
+    .principle-slide.p16 .principle-copy { top:17%; width:34%; }
+    .principle-slide.p17 .principle-copy { top:16%; width:39%; }
+    .principle-slide.p18 .principle-copy { top:15%; width:42%; }
+    .principle-slide.p19 .principle-copy { top:17%; width:40%; }
+    @media (max-width: 850px) { .principle-copy { top:11%; width:45%; } .principle-copy .principle-body { font-size:clamp(18px,2.4vw,24px); } .principle-copy h2 { font-size:clamp(26px,3.5vw,36px); } }
+    .einstein-slide { background:#d6c0a0; }
+    .einstein-slide img { object-fit:cover; }
+  </style>
+</head>
+<body>
+  <main class="stage">
+  <section class="slide active" aria-label="Slide 1 dari 33: Neuroparenting">
+      <video class="cover-video" autoplay muted loop playsinline preload="auto" poster="assets/00-cover-neuroparenting.png" aria-label="Video cover Neuroparenting"><source src="assets/Cover-video.mp4" type="video/mp4"></video>
+      <svg class="signal-overlay sun-overlay" viewBox="0 0 1672 941" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <radialGradient id="sunHalo"><stop offset="0%" stop-color="#fffdf2" stop-opacity=".42"/><stop offset="48%" stop-color="#ffda8c" stop-opacity=".24"/><stop offset="100%" stop-color="#ffc95c" stop-opacity="0"/></radialGradient>
+          <filter id="sunBlur"><feGaussianBlur stdDeviation="7"/></filter>
+        </defs>
+        <circle cx="586" cy="267" r="56" fill="url(#sunHalo)" filter="url(#sunBlur)">
+          <animate attributeName="r" values="48;66;48" dur="5.8s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".48;.9;.48" dur="5.8s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="586" cy="267" r="36" fill="none" stroke="#fff4d2" stroke-width="4" opacity="0">
+          <animate attributeName="r" values="34;69" dur="5.8s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".48;0" dur="5.8s" repeatCount="indefinite"/>
+        </circle>
+        <g stroke="#f8c86e" stroke-width="3" stroke-linecap="round">
+          <line x1="586" y1="205" x2="586" y2="190"><animate attributeName="opacity" values=".12;.78;.12" dur="3.6s" repeatCount="indefinite"/></line>
+          <line x1="631" y1="222" x2="642" y2="211"><animate attributeName="opacity" values=".12;.78;.12" dur="3.6s" begin="-.6s" repeatCount="indefinite"/></line>
+          <line x1="648" y1="267" x2="664" y2="267"><animate attributeName="opacity" values=".12;.78;.12" dur="3.6s" begin="-1.2s" repeatCount="indefinite"/></line>
+          <line x1="631" y1="312" x2="642" y2="323"><animate attributeName="opacity" values=".12;.78;.12" dur="3.6s" begin="-1.8s" repeatCount="indefinite"/></line>
+          <line x1="586" y1="329" x2="586" y2="345"><animate attributeName="opacity" values=".12;.78;.12" dur="3.6s" begin="-2.4s" repeatCount="indefinite"/></line>
+          <line x1="541" y1="312" x2="530" y2="323"><animate attributeName="opacity" values=".12;.78;.12" dur="3.6s" begin="-3s" repeatCount="indefinite"/></line>
+          <line x1="524" y1="267" x2="508" y2="267"><animate attributeName="opacity" values=".12;.78;.12" dur="3.6s" begin="-1.5s" repeatCount="indefinite"/></line>
+          <line x1="541" y1="222" x2="530" y2="211"><animate attributeName="opacity" values=".12;.78;.12" dur="3.6s" begin="-.9s" repeatCount="indefinite"/></line>
+        </g>
+      </svg>
+    </section>
+    <section class="slide einstein-slide" aria-label="Slide 2 dari 33: Albert Einstein">
+      <img src="assets/20-einstein.png" alt="Close-up ilustrasi faceless Albert Einstein menjulurkan lidah, dengan rumus E sama dengan mc kuadrat">
+    </section>
+    <section class="slide" aria-label="Slide 3 dari 33: Dua laki-laki faceless">
+      <img src="assets/03-handwalk-sneakers.png" alt="Dua laki-laki tanpa detail wajah. Tokoh kiri berjalan dengan kedua tangan yang memakai sepatu. Tokoh kanan minum dari cangkir yang dipegang dengan kedua kaki.">
+    </section>
+    <section class="slide neuro-intro" data-slide-reveal aria-label="Slide 4 dari 33: Neuroedukasi">
+      <div class="intro-copy">
+        <h1 class="clinical-title">Neuroedukasi</h1>
+        <p>Memahami cara otak belajar, lalu mengasuh dan mendidik sesuai desainnya.</p>
+      </div>
+      <img class="intro-eeg" src="assets/04-intro-eeg.png" alt="Pria tanpa detail wajah mengenakan topi EEG dengan elektroda yang terhubung ke monitor.">
+      <span class="intro-eeg-label" aria-hidden="true">EEG</span>
+      <div class="intro-diagram" role="group" aria-label="Pertemuan tiga bidang dalam Neuroedukasi">
+        <div class="intro-circle intro-brain">
+          <img class="intro-illustration" src="assets/04-clinical-neuroscience.png" alt="">
+          <span class="intro-label">Ilmu Saraf</span>
+        </div>
+        <div class="intro-circle intro-psych">
+          <img class="intro-illustration" src="assets/04-clinical-psychology-no-eye.png" alt="">
+          <span class="intro-label">Psikologi</span>
+        </div>
+        <div class="intro-circle intro-edu">
+          <img class="intro-illustration" src="assets/04-clinical-pedagogy.png" alt="">
+          <span class="intro-label">Pedagogi</span>
+        </div>
+      </div>
+      <div class="intro-spark" aria-hidden="true"></div>
+      <svg class="synthesis-arrow" viewBox="0 0 1600 900" aria-hidden="true">
+        <g fill="none" stroke="#72503d" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M576 397 C765 397 965 419 1142 440" stroke-dasharray="9 11"/>
+          <path d="M1126 429 L1142 440 L1124 448"/>
+        </g>
+      </svg>
+    </section>
+    <section class="slide" aria-label="Slide 5 dari 33: Otak dan Neuron">
+      <video data-play-with-pauses data-intro-delay="5000" data-replay-delay="10000" muted playsinline preload="auto" aria-label="Animasi otak dan neuron">
+        <source src="assets/neurons.mp4" type="video/mp4">
+      </video>
+    </section>
+                <section class="slide" aria-label="Slide 6 dari 33: Pesan menyeberangi sinaps">
+      <img src="assets/05-islands-seven-couriers.png" alt="Enam pulau dengan jalan tanah dan dermaga. Pulau terbesar memiliki dua kurir motor, lima pulau lainnya masing-masing satu. Tiga kapal membawa paket melintasi laut.">
+    </section>
+    <section class="slide" aria-label="Slide 7 dari 33: Neuron">
+      <img src="assets/01-neuron.png" alt="Diagram neuron berlabel dalam gaya Clinical Doodles">
+      <svg class="signal-overlay" viewBox="0 0 1672 941" preserveAspectRatio="none" aria-hidden="true">
+        <defs><filter id="glow"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <g fill="#ffffff" stroke="#ffffff" stroke-width="2" filter="url(#glow)">
+          <circle r="8"><animateMotion dur="5.4s" repeatCount="indefinite" path="M 184 312 C 228 382, 274 451, 334 505 C 385 548, 447 567, 520 579 C 630 584, 756 583, 900 582 C 1055 580, 1205 580, 1336 572 C 1400 565, 1450 526, 1503 478"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.88;1" dur="5.4s" repeatCount="indefinite"/></circle>
+          <circle r="5"><animateMotion dur="5.4s" begin="-2.7s" repeatCount="indefinite" path="M 184 312 C 228 382, 274 451, 334 505 C 385 548, 447 567, 520 579 C 630 584, 756 583, 900 582 C 1055 580, 1205 580, 1336 572 C 1400 565, 1450 526, 1503 478"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.88;1" dur="5.4s" begin="-2.7s" repeatCount="indefinite"/></circle>
+          <circle r="7"><animateMotion dur="5.8s" repeatCount="indefinite" path="M 470 232 C 451 310, 463 388, 449 459 C 440 505, 475 560, 520 579 C 650 584, 806 583, 951 582 C 1110 580, 1250 579, 1340 570 C 1405 560, 1454 523, 1503 478"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.88;1" dur="5.8s" repeatCount="indefinite"/></circle>
+          <circle r="5"><animateMotion dur="5.8s" begin="-2.9s" repeatCount="indefinite" path="M 470 232 C 451 310, 463 388, 449 459 C 440 505, 475 560, 520 579 C 650 584, 806 583, 951 582 C 1110 580, 1250 579, 1340 570 C 1405 560, 1454 523, 1503 478"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.88;1" dur="5.8s" begin="-2.9s" repeatCount="indefinite"/></circle>
+          <circle r="7"><animateMotion dur="5.2s" repeatCount="indefinite" path="M 173 790 C 238 737, 300 674, 354 622 C 400 584, 461 568, 520 579 C 650 584, 807 583, 955 582 C 1115 580, 1255 579, 1341 570 C 1408 559, 1457 520, 1503 478"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.88;1" dur="5.2s" repeatCount="indefinite"/></circle>
+          <circle r="5"><animateMotion dur="5.2s" begin="-2.6s" repeatCount="indefinite" path="M 173 790 C 238 737, 300 674, 354 622 C 400 584, 461 568, 520 579 C 650 584, 807 583, 955 582 C 1115 580, 1255 579, 1341 570 C 1408 559, 1457 520, 1503 478"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.88;1" dur="5.2s" begin="-2.6s" repeatCount="indefinite"/></circle>
+        </g>
+      </svg>
+    </section>
+    <section class="slide" aria-label="Slide 8 dari 33: Koneksi antar neuron">
+      <img src="assets/02-sinaps.png" alt="Diagram sinaps dan komunikasi antar neuron dalam gaya Clinical Doodles">
+      <svg class="signal-overlay" viewBox="0 0 1672 941" preserveAspectRatio="none" aria-hidden="true">
+        <defs><filter id="nt-glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <!-- Reseptor menyala saat neurotransmiter menempel -->
+        <g fill="#c98be6" filter="url(#nt-glow)">
+          <circle cx="990" cy="452" r="15" opacity="0"><animate attributeName="opacity" values="0;0;.75;0;0" keyTimes="0;.18;.28;.6;1" dur=".9s" repeatCount="indefinite"/></circle>
+          <circle cx="990" cy="517" r="15" opacity="0"><animate attributeName="opacity" values="0;0;.75;0;0" keyTimes="0;.18;.28;.6;1" dur=".9s" begin="-.3s" repeatCount="indefinite"/></circle>
+          <circle cx="990" cy="580" r="15" opacity="0"><animate attributeName="opacity" values="0;0;.75;0;0" keyTimes="0;.18;.28;.6;1" dur=".9s" begin="-.6s" repeatCount="indefinite"/></circle>
+        </g>
+        <!-- Neurotransmiter dilepas dari ujung akson, menyeberangi celah sinaps menuju reseptor -->
+        <g fill="#f6a531" stroke="#8a4a1c" stroke-width="1.5" filter="url(#nt-glow)">
+          <circle r="6" opacity="0"><animateMotion dur="2.7s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.75;1" keyPoints="0;1;1" keySplines=".2 .6 .4 1;0 0 1 1" path="M 844 468 C 880 452, 922 474, 976 452"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.78;1" dur="2.7s" repeatCount="indefinite"/></circle>
+          <circle r="5" opacity="0"><animateMotion dur="2.7s" begin="-.9s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.75;1" keyPoints="0;1;1" keySplines=".2 .6 .4 1;0 0 1 1" path="M 840 440 C 878 470, 930 438, 976 452"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.78;1" dur="2.7s" begin="-.9s" repeatCount="indefinite"/></circle>
+          <circle r="6" opacity="0"><animateMotion dur="2.7s" begin="-1.8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.75;1" keyPoints="0;1;1" keySplines=".2 .6 .4 1;0 0 1 1" path="M 846 492 C 884 470, 920 462, 976 452"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.78;1" dur="2.7s" begin="-1.8s" repeatCount="indefinite"/></circle>
+
+          <circle r="6" opacity="0"><animateMotion dur="2.7s" begin="-.3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.75;1" keyPoints="0;1;1" keySplines=".2 .6 .4 1;0 0 1 1" path="M 846 520 C 886 503, 926 534, 976 517"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.78;1" dur="2.7s" begin="-.3s" repeatCount="indefinite"/></circle>
+          <circle r="5" opacity="0"><animateMotion dur="2.7s" begin="-1.2s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.75;1" keyPoints="0;1;1" keySplines=".2 .6 .4 1;0 0 1 1" path="M 845 505 C 890 530, 930 500, 976 517"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.78;1" dur="2.7s" begin="-1.2s" repeatCount="indefinite"/></circle>
+          <circle r="6" opacity="0"><animateMotion dur="2.7s" begin="-2.1s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.75;1" keyPoints="0;1;1" keySplines=".2 .6 .4 1;0 0 1 1" path="M 846 545 C 882 525, 924 520, 976 517"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.78;1" dur="2.7s" begin="-2.1s" repeatCount="indefinite"/></circle>
+
+          <circle r="6" opacity="0"><animateMotion dur="2.7s" begin="-.6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.75;1" keyPoints="0;1;1" keySplines=".2 .6 .4 1;0 0 1 1" path="M 842 575 C 880 597, 926 566, 976 580"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.78;1" dur="2.7s" begin="-.6s" repeatCount="indefinite"/></circle>
+          <circle r="5" opacity="0"><animateMotion dur="2.7s" begin="-1.5s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.75;1" keyPoints="0;1;1" keySplines=".2 .6 .4 1;0 0 1 1" path="M 838 605 C 878 585, 920 605, 976 580"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.78;1" dur="2.7s" begin="-1.5s" repeatCount="indefinite"/></circle>
+          <circle r="6" opacity="0"><animateMotion dur="2.7s" begin="-2.4s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.75;1" keyPoints="0;1;1" keySplines=".2 .6 .4 1;0 0 1 1" path="M 845 552 C 884 572, 928 590, 976 580"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.1;.78;1" dur="2.7s" begin="-2.4s" repeatCount="indefinite"/></circle>
+        </g>
+      </svg>
+    </section>
+    <section class="slide" aria-label="Slide 9 dari 33: Video 9 Prinsip Neuroedukasi">
+      <video data-play-on-enter muted loop playsinline preload="auto" aria-label="Video 9 Prinsip Neuroedukasi">
+        <source src="assets/9%20prinsip.mp4" type="video/mp4">
+      </video>
+    </section>
+    <section class="slide" aria-label="Slide 10 dari 33: Prinsip 1: Neuroplastisitas">
+      <img src="assets/prinsip-01-neuroplastisitas-clinical.png" alt="Prinsip 1: Neuroplastisitas. Pesawat, burger, dan otak dari plastisin.">
+    </section>
+    <section class="slide" aria-label="Slide 11 dari 33: Tiga kutipan tentang anak">
+      <img src="assets/tiga-kutipan-neuroplastisitas.png" alt="Anaknya memang lambat nerima pelajaran. Dia memang suka marah seperti Ayahnya. Gak apa-apa, kan masih kecil.">
+    </section>
+    <section class="slide" aria-label="Slide 12 dari 33: Jalur baru terbuka">
+      <video data-play-with-pauses data-repeat-intro data-intro-delay="10000" data-replay-delay="0" muted playsinline preload="auto" aria-label="Animasi jalan setapak">
+        <source src="assets/jalan-loop-halus.mp4" type="video/mp4">
+      </video>
+    </section>
+<section class="slide" aria-label="Slide 13 dari 33: Jalur saraf yang sering digunakan">
+      <img src="assets/04-neural-pathway.png" alt="Jaringan 11 neuron dengan satu jalur tebal berzigzag yang sering digunakan">
+      <svg class="signal-overlay" viewBox="0 0 1672 941" preserveAspectRatio="none" aria-hidden="true">
+        <defs><filter id="network-glow"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <g fill="#ffffff" stroke="#ffffff" stroke-width="2" filter="url(#network-glow)">
+          <circle r="8"><animateMotion dur="7s" repeatCount="indefinite" path="M 205 704 C 270 699 333 685 390 675 C 443 665 470 616 505 559 C 540 501 591 478 650 478 C 727 482 792 530 861 557 C 924 580 982 579 1032 551 C 1075 527 1099 454 1146 394 C 1182 347 1222 329 1262 326 C 1333 318 1400 275 1489 211"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.9;1" dur="7s" repeatCount="indefinite"/></circle>
+          <circle r="6"><animateMotion dur="7s" begin="-1.75s" repeatCount="indefinite" path="M 205 704 C 270 699 333 685 390 675 C 443 665 470 616 505 559 C 540 501 591 478 650 478 C 727 482 792 530 861 557 C 924 580 982 579 1032 551 C 1075 527 1099 454 1146 394 C 1182 347 1222 329 1262 326 C 1333 318 1400 275 1489 211"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.9;1" dur="7s" begin="-1.75s" repeatCount="indefinite"/></circle>
+          <circle r="5"><animateMotion dur="7s" begin="-3.5s" repeatCount="indefinite" path="M 205 704 C 270 699 333 685 390 675 C 443 665 470 616 505 559 C 540 501 591 478 650 478 C 727 482 792 530 861 557 C 924 580 982 579 1032 551 C 1075 527 1099 454 1146 394 C 1182 347 1222 329 1262 326 C 1333 318 1400 275 1489 211"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.9;1" dur="7s" begin="-3.5s" repeatCount="indefinite"/></circle>
+          <circle r="4"><animateMotion dur="7s" begin="-5.25s" repeatCount="indefinite" path="M 205 704 C 270 699 333 685 390 675 C 443 665 470 616 505 559 C 540 501 591 478 650 478 C 727 482 792 530 861 557 C 924 580 982 579 1032 551 C 1075 527 1099 454 1146 394 C 1182 347 1222 329 1262 326 C 1333 318 1400 275 1489 211"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.9;1" dur="7s" begin="-5.25s" repeatCount="indefinite"/></circle>
+        </g>
+      </svg>
+    </section>
+    <section class="slide" aria-label="Slide 14 dari 33: Mengaspal Jalan di Otak">
+      <video data-play-with-pauses data-intro-delay="5000" data-replay-delay="10000" data-playback-rate="0.5" muted playsinline preload="auto" aria-label="Animasi neuron menyala">
+        <source src="assets/fire.mp4" type="video/mp4">
+      </video>
+    </section>
+    <section class="slide" aria-label="Slide 15 dari 33: Mielin">
+      <img src="assets/03-mielin.png" alt="Perbandingan akson bermielin dan tanpa mielin dalam gaya Clinical Doodles">
+      <svg class="signal-overlay" viewBox="0 0 1672 941" preserveAspectRatio="none" aria-hidden="true">
+        <defs><filter id="mielinGlow"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <g fill="#ffffff" stroke="#ffffff" stroke-width="3" stroke-linecap="round" filter="url(#mielinGlow)">
+          <g transform="translate(709 421)"><circle r="7"/><path d="M0 -15V-10 M0 10V15 M-15 0H-10 M10 0H15 M-10 -10L-7 -7 M10 10L7 7 M10 -10L7 -7 M-10 10L-7 7"/><animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.035;0.11;1" dur="1.2s" repeatCount="indefinite"/></g>
+          <g transform="translate(908 421)"><circle r="7"/><path d="M0 -15V-10 M0 10V15 M-15 0H-10 M10 0H15 M-10 -10L-7 -7 M10 10L7 7 M10 -10L7 -7 M-10 10L-7 7"/><animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.035;0.11;1" dur="1.2s" begin="0.14s" repeatCount="indefinite"/></g>
+          <g transform="translate(1126 421)"><circle r="7"/><path d="M0 -15V-10 M0 10V15 M-15 0H-10 M10 0H15 M-10 -10L-7 -7 M10 10L7 7 M10 -10L7 -7 M-10 10L-7 7"/><animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.035;0.11;1" dur="1.2s" begin="0.28s" repeatCount="indefinite"/></g>
+          <g transform="translate(1356 421)"><circle r="7"/><path d="M0 -15V-10 M0 10V15 M-15 0H-10 M10 0H15 M-10 -10L-7 -7 M10 10L7 7 M10 -10L7 -7 M-10 10L-7 7"/><animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.035;0.11;1" dur="1.2s" begin="0.42s" repeatCount="indefinite"/></g>
+        </g>
+        <g filter="url(#mielinGlow)" fill="#ffffff" stroke="#ffffff" stroke-width="2">
+          <circle r="8" opacity="0"><animateMotion dur="5.8s" repeatCount="indefinite" path="M 520 671 C 680 670 835 670 1010 670 C 1160 670 1285 670 1400 670"/><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.06;0.91;1" dur="5.8s" repeatCount="indefinite"/></circle>
+        </g>
+      </svg>
+    </section>
+    <section class="slide insights-slide" data-insights-step="0" style="--insights-first:52%; --insights-second:71%;" aria-label="Slide 16 dari 33: Insights">
+      <img src="assets/insights-neuroplastisitas.png" alt="Insights. Ganti 'labeling' dengan Apresiasi. Mudah adalah ilusi pembelajaran. Ubah 'Tidak' dengan 'Belum'.">
+    </section>
+    <section class="slide" aria-label="Slide 17 dari 33: Prinsip 2: Emotional Safety">
+      <img src="assets/prinsip-02-emotional-safety-clinical.png" alt="Prinsip 2: Emotional Safety. Perisai, speaker, dan hati.">
+    </section>
+    <section class="slide" aria-label="Slide 18 dari 33: Contoh situasi Emotional Safety">
+      <img src="assets/tiga-kalimat-emotional-safety.png" alt="&quot;Ayo Jawab! kok diam saja.&quot; Murung dan tidak konsentrasi di kelas. Tantrum dan gak bisa diajak diskusi.">
+    </section>
+    <section class="slide" aria-label="Slide 19 dari 33: Regulasi Emosi">
+      <video data-play-with-pauses data-intro-delay="20000" data-replay-delay="30000" muted playsinline preload="auto" aria-label="Animasi regulasi emosi">
+        <source src="assets/pfc.mp4" type="video/mp4">
+      </video>
+    </section>
+    <section class="slide fff-slide" aria-label="Slide 20 dari 33: Fight, Flight, Freeze">
+      <video data-play-with-pauses data-intro-delay="3000" muted loop playsinline preload="auto" aria-label="Tiga anak menggambarkan respons Fight, Flight, dan Freeze">
+        <source src="assets/fff.mp4" type="video/mp4">
+      </video>
+      <div class="fff-labels">
+        <span>Melawan (fight)</span>
+        <span>Menghindar (flight)</span>
+        <span>Ngeblank (freeze)</span>
+      </div>
+    </section>
+    <section class="slide insights-slide" data-insights-step="0" style="--insights-first:57%; --insights-second:72%;" aria-label="Slide 21 dari 33: Insights Emotional Safety">
+      <img src="assets/insights-emotional-safety.png" alt="Insights. Anak tidak akan peduli seberapa banyak Kita tahu (ilmu), sampai mereka tahu seberapa besar Kita peduli (rasa aman). 'Koneksi' sebelum 'Koreksi'. Jangan mempermalukan mereka: &quot;Masa begini saja tidak bisa?&quot;">
+    </section>
+    <section class="slide" aria-label="Slide 22 dari 33: Prinsip 3: Selective Attention">
+      <img src="assets/prinsip-03-selective-attention-clinical.png" alt="Prinsip 3: Selective Attention. Senter menyorot satu halaman buku.">
+    </section>
+    <section class="slide" aria-label="Slide 23 dari 33: Ikuti bola di bawah cangkir">
+      <div class="attention-demo" id="attentionDemo">
+        <img class="demo-bg" src="assets/attention-before.png" alt="Meja dengan tiga cangkir, jam pukul tiga, gambar kucing di papan tulis, penghapus, dan taplak bertotol bulat">
+        <img class="demo-change patch-clock" src="assets/attention-after.png" alt="" aria-hidden="true">
+        <img class="demo-change patch-board" src="assets/attention-after.png" alt="" aria-hidden="true">
+        <img class="demo-change patch-cloth" src="assets/attention-after.png" alt="" aria-hidden="true">
+        <img class="demo-change patch-eraser" src="assets/attention-after.png" alt="" aria-hidden="true">
+        <div class="demo-ring ring-board" aria-hidden="true"><span>Kucing → ikan</span></div>
+        <div class="demo-ring ring-clock" aria-hidden="true"><span>Pukul 3 → pukul 9</span></div>
+        <div class="demo-ring ring-cloth" aria-hidden="true"><span>Totol bulat → totol bulan sabit</span></div>
+        <div class="demo-ring ring-eraser" aria-hidden="true"><span>Penghapus menghilang</span></div>
+        <div class="demo-ball" id="demoBall" aria-hidden="true"></div>
+        <div class="demo-cup"><img src="assets/attention-cup-terracotta.png" alt=""></div>
+        <div class="demo-cup"><img src="assets/attention-cup-terracotta.png" alt=""></div>
+        <div class="demo-cup"><img src="assets/attention-cup-terracotta.png" alt=""></div>
+        <div class="demo-tags" aria-hidden="true"><span style="left:32%">KIRI</span><span style="left:50%">TENGAH</span><span style="left:68%">KANAN</span></div>
+        <div class="demo-status" id="demoStatus" aria-live="polite"></div>
+        <button class="demo-button demo-start" id="startDemo" type="button">Mulai</button>
+      </div>
+    </section>
+    <section class="slide" aria-label="Slide 24 dari 33: Reticular Activating System (RAS)">
+      <img src="assets/ras-clinical-doodles.png" alt="Diagram RAS dengan masukan sensorik menuju batang otak dan panah dari batang otak menuju korteks.">
+    </section>
+    <section class="slide" aria-label="Slide 25 dari 33: Dopaminergic System">
+      <img src="assets/dopaminergic-system-three-items.png" alt="Dopaminergic System: Baru (Novelty), kotak terbuka bercahaya; Bermanfaat (Reward), hadiah berpita; Relevan, teleskop dan buku bergambar Saturnus.">
+    </section>
+    <section class="slide" aria-label="Slide 26 dari 33: Multitasking anak">
+      <video data-play-with-pauses data-repeat-intro muted playsinline preload="auto" aria-label="Anak belajar saat TV menyala di belakangnya">
+        <source src="assets/nonton-tv.mp4" type="video/mp4">
+      </video>
+      <img class="video-intro-frame" src="assets/nonton-tv-frame-mati.png" alt="Anak belajar dengan TV mati di belakangnya.">
+    </section>
+    <section class="slide insights-slide" data-insights-step="0" style="--insights-first:49%; --insights-second:69%;" aria-label="Slide 27 dari 33: Insights Selective Attention">
+      <img src="assets/insights-selective-attention.png" alt="Insights. gunakan Teknik &quot;Bercerita&quot;. Berikan 'Reward' dan pertanyaan 'Menggantung'. Buat jadi 'Relevan' dan jangan sampai mereka bilang &quot;So What?&quot;">
+    </section>
+    <section class="slide" aria-label="Slide 28 dari 33: Prinsip 4: Cognitive Capacity">
+      <img src="assets/prinsip-04-cognitive-capacity-clinical.png" alt="Prinsip 4: Cognitive Capacity. Tangan sedang menyusun batu bata.">
+    </section>
+    <section class="slide" aria-label="Slide 29 dari 33: Contoh situasi Cognitive Capacity">
+      <img src="assets/kutipan-cognitive-capacity-revisi.png" alt="Kenapa pemahamanya lambat sekali? Padahal saya sudah jelaskan semuanya dan dia mengangguk!">
+    </section>
+    <section class="slide" aria-label="Slide 30 dari 33: Noise">
+      <video data-play-with-pauses data-intro-delay="5000" loop playsinline preload="auto" aria-label="Video Noise">
+        <source src="assets/noise.mp4" type="video/mp4">
+      </video>
+    </section>
+    <section class="slide" aria-label="Slide 31 dari 33: Working Memory">
+      <img src="assets/working.png" alt="Ilustrasi Working Memory">
+    </section>
+    <section class="slide insights-slide" data-insights-step="0" style="--insights-first:49%; --insights-second:67%;" aria-label="Slide 32 dari 33: Insights Cognitive Capacity">
+      <img src="assets/insights-cognitive-capacity.png" alt="Insights. gunakan Teknik &quot;Memecah jadi Kecil&quot;. ajari &quot;I Do, We Do, You Do&quot;. Kurangi distraksi lingkungan.">
+    </section>
+    <section class="slide" aria-label="Slide 33 dari 33: Baarakallahu fiikum">
+      <img src="assets/penutup-baarakallahu-fiikum.png" alt="Baarakallahu fiikum">
+    </section>
+  </main>
+  <nav class="toolbar" aria-label="Navigasi slide">
+    <button id="prev" type="button" aria-label="Slide sebelumnya">←</button>
+    <button id="next" type="button" aria-label="Slide berikutnya">→</button>
+    <button id="full" type="button" aria-label="Aktifkan layar penuh">⛶</button>
+  </nav>
+  <div class="page-number">
+    <select id="pageSelect" aria-label="Pilih halaman"></select>
+    <span id="pageTotal" class="page-total" aria-hidden="true">/ 23</span>
+  </div>
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const pageSelect = document.getElementById('pageSelect');
+    const pageTotal = document.getElementById('pageTotal');
+    // Isi dropdown dengan nomor halaman saja
+    slides.forEach((slide, i) => {
+      const option = document.createElement('option');
+      option.value = i;
+      option.textContent = String(i + 1);
+      option.setAttribute('aria-label', slide.getAttribute('aria-label') || `Halaman ${i + 1}`);
+      pageSelect.appendChild(option);
+    });
+    pageTotal.textContent = `/ ${slides.length}`;
+    const videosWithPauses = document.querySelectorAll('video[data-play-with-pauses]');
+    let index = 0;
+    let videoPauseTimer;
+    let demoKeyHandler = null;   // diisi oleh demo slide 8
+    let demoOnLeave = null;
+    function playTimedVideo(video) {
+      if (!slides[index].contains(video)) return;
+      video.currentTime = 0;
+      video.playbackRate = Number(video.dataset.playbackRate ?? 1);
+      video.play().catch(error => {
+        if (error.name !== 'NotAllowedError' || video.muted || !slides[index].contains(video)) return;
+        video.muted = true;
+        video.play().catch(() => {});
+      });
+    }
+    function waitBeforePlaying(video) {
+      if (!slides[index].contains(video)) return;
+      video.classList.remove('video-has-started');
+      video.currentTime = 0;
+      videoPauseTimer = setTimeout(() => playTimedVideo(video), Number(video.dataset.introDelay ?? 5000));
+    }
+    for (const video of videosWithPauses) {
+      video.addEventListener('playing', () => {
+        if (slides[index].contains(video)) video.classList.add('video-has-started');
+      });
+      video.addEventListener('ended', () => {
+        if (!slides[index].contains(video) || !video.ended) return;
+        videoPauseTimer = setTimeout(() => {
+          if (video.hasAttribute('data-repeat-intro')) waitBeforePlaying(video);
+          else playTimedVideo(video);
+        }, Number(video.dataset.replayDelay ?? 10000));
+      });
+    }
+    function show(next) {
+      const target = (next + slides.length) % slides.length;
+      const changed = target !== index;
+      if (changed) {
+        if (demoOnLeave) demoOnLeave(slides[index]);
+        slides[index].classList.remove('step-revealed', 'eeg-revealed');
+        if (slides[index].hasAttribute('data-insights-step')) slides[index].dataset.insightsStep = '0';
+        clearTimeout(videoPauseTimer);
+        const leavingVideo = slides[index].querySelector('video:is([data-play-on-enter], [data-play-with-pauses])');
+        if (leavingVideo) {
+          leavingVideo.pause();
+          leavingVideo.currentTime = 0;
+          leavingVideo.muted = leavingVideo.defaultMuted;
+          leavingVideo.classList.remove('video-has-started');
+        }
+      }
+      index = target;
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === index);
+        slide.setAttribute('aria-hidden', i === index ? 'false' : 'true');
+      });
+      pageSelect.value = String(index);
+      if (changed) {
+        const arrivingVideo = slides[index].querySelector('video[data-play-on-enter]');
+        if (arrivingVideo) {
+          arrivingVideo.playbackRate = Number(arrivingVideo.dataset.playbackRate ?? 1);
+          arrivingVideo.play().catch(() => {});
+        }
+        const timedVideo = slides[index].querySelector('video[data-play-with-pauses]');
+        if (timedVideo) waitBeforePlaying(timedVideo);
+      }
+    }
+    document.getElementById('prev').addEventListener('click', () => show(index - 1));
+    function advanceSlide() {
+      const slide = slides[index];
+      if (slide.matches('.neuro-intro:not(.eeg-revealed)')) {
+        slide.classList.add('eeg-revealed');
+        return;
+      }
+      const insightsStep = Number(slide.dataset.insightsStep);
+      if (insightsStep < 3) {
+        slide.dataset.insightsStep = String(insightsStep + 1);
+        return;
+      }
+      if (slide.hasAttribute('data-slide-reveal') && !slide.classList.contains('step-revealed')) {
+        slide.classList.add('step-revealed');
+        return;
+      }
+      show(index + 1);
+    }
+    document.getElementById('next').addEventListener('click', advanceSlide);
+    document.getElementById('full').addEventListener('click', async () => {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
+      else await document.exitFullscreen?.();
+    });
+    pageSelect.addEventListener('change', () => {
+      show(Number(pageSelect.value));
+      pageSelect.blur();   // kembalikan fokus agar tombol panah/spasi tetap menggerakkan slide
+    });
+    document.addEventListener('keydown', e => {
+      if (e.target === pageSelect) return;   // biarkan dropdown memakai tombol panahnya sendiri
+      if (demoKeyHandler && demoKeyHandler(e)) return;
+      if (['ArrowRight', 'PageDown', ' '].includes(e.key)) {
+        e.preventDefault();
+        if (!e.repeat || !slides[index].matches('[data-slide-reveal], [data-insights-step]')) advanceSlide();
+      }
+      if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(index - 1); }
+      if (e.key.toLowerCase() === 'f') document.getElementById('full').click();
+      if (e.key === 'Home') show(0);
+      if (e.key === 'End') show(slides.length - 1);
+    });
+    const attentionDemo = document.getElementById('attentionDemo');
+    if (attentionDemo) {
+      const cups = [...attentionDemo.querySelectorAll('.demo-cup')].map((el, i) => ({ el, pos: i }));
+      const ball = document.getElementById('demoBall');
+      const status = document.getElementById('demoStatus');
+      const button = document.getElementById('startDemo');
+      const SLOT = [32, 50, 68];          // posisi x (%) kiri, tengah, kanan
+      const NAMES = ['KIRI', 'TENGAH', 'KANAN'];
+      const DOWN = 58, UP = 40;           // posisi y (%) cangkir di meja / terangkat
+      // Putaran 1 → 5: makin banyak tukar (makin lama) dan makin cepat
+      const ROUNDS = [
+        { swaps: 4,  ms: 950, gap: 220, wide: 0 },    // ±4,7 detik
+        { swaps: 6,  ms: 760, gap: 150, wide: .15 },  // ±5,5 detik
+        { swaps: 10, ms: 580, gap: 100, wide: .25 },  // ±6,8 detik
+        { swaps: 16, ms: 440, gap: 60,  wide: .3 },   // ±8 detik
+        { swaps: 26, ms: 330, gap: 30,  wide: .35 }   // ±9,4 detik
+      ];
+      const CHANGES = ['changed-clock', 'changed-board', 'changed-cloth', 'changed-eraser'];
+      let phase = 'ready', round = 0, busy = false, token = 0, ballCup = cups[1];
+
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const easeOut = t => 1 - Math.pow(1 - t, 3);
+      const sleep = ms => { const my = token; return new Promise(r => setTimeout(() => r(my === token), ms)); };
+      function tween(ms, step, ease = easeInOut) {
+        const my = token;
+        return new Promise(resolve => {
+          const t0 = performance.now();
+          const frame = now => {
+            if (my !== token) return resolve(false);
+            const p = Math.min(1, (now - t0) / ms);
+            step(ease(p));
+            if (p < 1) requestAnimationFrame(frame); else resolve(true);
+          };
+          requestAnimationFrame(frame);
+        });
+      }
+      function place(cup, x, y, s = 1) {
+        cup.x = x; cup.y = y;
+        cup.el.style.left = `${x}%`;
+        cup.el.style.top = `${y}%`;
+        cup.el.style.setProperty('--s', s);
+      }
+      function setStatus(text, extra = '') {
+        status.textContent = text;
+        status.className = `demo-status${text ? ' visible' : ''}${extra ? ' ' + extra : ''}`;
+      }
+      function setButton(label, disabled = false) { button.textContent = label; button.disabled = disabled; }
+      const moveY = (cup, y, ms, ease) => { const y0 = cup.y; return tween(ms, e => place(cup, cup.x, lerp(y0, y, e)), ease); };
+
+      // Tukar dua cangkir: satu lewat depan (turun & membesar), satu lewat belakang (naik & mengecil)
+      async function swap(a, b, ms) {
+        const [front, back] = Math.random() < .5 ? [a, b] : [b, a];
+        const fx0 = SLOT[front.pos], fx1 = SLOT[back.pos];
+        const arc = 4 + Math.abs(a.pos - b.pos) * 2.5;
+        front.el.style.zIndex = '6';
+        back.el.style.zIndex = '4';
+        const ok = await tween(ms, e => {
+          const bump = Math.sin(Math.PI * e);
+          place(front, lerp(fx0, fx1, e), DOWN + bump * arc * .35, 1 + bump * .07);
+          place(back, lerp(fx1, fx0, e), DOWN - bump * arc, 1 - bump * .08);
+        });
+        [front.pos, back.pos] = [back.pos, front.pos];
+        return ok;
+      }
+      function pickPair(prev, wide) {
+        let pair;
+        do {
+          pair = Math.random() < wide ? [0, 2] : (Math.random() < .5 ? [0, 1] : [1, 2]);
+        } while (prev && pair[0] === prev[0] && pair[1] === prev[1] && Math.random() < .7);
+        return pair;
+      }
+
+      function resetDemo() {
+        token++;
+        busy = false; phase = 'ready'; round = 0;
+        attentionDemo.classList.remove(...CHANGES, 'show-tags', 'show-rings');
+        attentionDemo.style.setProperty('--fade', '0s');
+        cups.forEach((cup, i) => { cup.pos = i; cup.el.style.zIndex = '4'; place(cup, SLOT[i], i === 1 ? UP : DOWN); });
+        ballCup = cups[1];
+        ball.style.left = `${SLOT[1]}%`;
+        ball.style.opacity = '1';
+        setStatus('Perhatikan bola merah di bawah cangkir tengah.');
+        setButton('Mulai');
+        requestAnimationFrame(() => attentionDemo.style.removeProperty('--fade'));
+      }
+
+      async function playRound() {
+        busy = true; round++;
+        attentionDemo.classList.remove('show-tags');
+        setButton(`Putaran ${round}/5`, true);
+        if (round === 1) {
+          setStatus('Ingat: bola merah ada di cangkir TENGAH.');
+          if (!await sleep(1300)) return;
+        }
+        // Tutup bola dengan cangkirnya
+        ballCup.el.style.zIndex = '6';
+        if (!await moveY(ballCup, DOWN, 520)) return;
+        ball.style.opacity = '0';
+        ballCup.el.style.zIndex = '4';
+        setStatus(round === 1 ? 'Putaran 1 dari 5 — ikuti cangkirnya!' : `Putaran ${round} dari 5 — lebih cepat!`);
+        if (!await sleep(650)) return;
+
+        const cfg = ROUNDS[round - 1];
+        let prev = null;
+        for (let i = 0; i < cfg.swaps; i++) {
+          prev = pickPair(prev, cfg.wide);
+          const a = cups.find(c => c.pos === prev[0]);
+          const b = cups.find(c => c.pos === prev[1]);
+          if (!await swap(a, b, cfg.ms)) return;
+          // Perubahan latar tersebar di beberapa sesi.
+          if (round === 3 && i === 4) attentionDemo.classList.add('changed-clock');
+          if (round === 4 && i === 6) attentionDemo.classList.add('changed-eraser');
+          if (round === 5 && i === 6) attentionDemo.classList.add('changed-board');
+          if (round === 5 && i === 19) attentionDemo.classList.add('changed-cloth');
+          if (cfg.gap && !await sleep(cfg.gap)) return;
+        }
+
+        if (!await sleep(300)) return;
+        setStatus('Di mana bola merah?', 'ask');
+        attentionDemo.classList.add('show-tags');
+        setButton('Buka cangkir');
+        phase = 'ask'; busy = false;
+      }
+
+      async function revealBall() {
+        busy = true;
+        attentionDemo.classList.remove('show-tags');
+        setButton('Buka cangkir', true);
+        ball.style.left = `${SLOT[ballCup.pos]}%`;
+        ball.style.opacity = '1';
+        ballCup.el.style.zIndex = '6';
+        if (!await moveY(ballCup, UP, 560, easeOut)) return;
+        setStatus(`Bola merah ada di ${NAMES[ballCup.pos]}!`);
+        if (round < 5) { setButton(`Putaran ${round + 1}`); phase = 'between'; }
+        else { setButton('Ada yang berubah?'); phase = 'asked'; }
+        busy = false;
+      }
+
+      async function askChange() {
+        busy = true;
+        setButton('Ada yang berubah?', true);
+        if (!await moveY(ballCup, DOWN, 480)) return;
+        ball.style.opacity = '0';
+        setStatus('Selain bola… ada yang sadar sesuatu di ruangan ini berubah?', 'ask low');
+        setButton('Tunjukkan');
+        phase = 'change'; busy = false;
+      }
+
+      async function showChange() {
+        busy = true;
+        setButton('Tunjukkan', true);
+        setStatus('Sebelum… dan sesudah.', 'low');
+        attentionDemo.style.setProperty('--fade', '.7s');
+        for (let i = 0; i < 2; i++) {
+          attentionDemo.classList.remove(...CHANGES);
+          if (!await sleep(1300)) return;
+          attentionDemo.classList.add(...CHANGES);
+          if (!await sleep(1300)) return;
+        }
+        attentionDemo.classList.add('show-rings');
+        setStatus('Empat hal berubah saat perhatian kita tertuju pada bola.', 'low');
+        setButton('Ulangi dari awal');
+        phase = 'done'; busy = false;
+      }
+
+      function advance() {
+        if (busy) return;
+        if (phase === 'ready' || phase === 'between') playRound();
+        else if (phase === 'ask') revealBall();
+        else if (phase === 'asked') askChange();
+        else if (phase === 'change') showChange();
+        else if (phase === 'done') resetDemo();
+      }
+
+      button.addEventListener('click', () => { button.blur(); advance(); });
+      // Di slide ini: Spasi/Enter menjalankan langkah demo; navigasi dikunci saat animasi berjalan
+      demoKeyHandler = e => {
+        if (!slides[index].contains(attentionDemo)) return false;
+        const nav = ['ArrowRight', 'ArrowLeft', 'PageDown', 'PageUp', 'Home', 'End'];
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          if (phase === 'done' && e.key === ' ') return false;  // demo selesai: Spasi kembali ke navigasi biasa
+          advance();
+          return true;
+        }
+        if (busy && nav.includes(e.key)) { e.preventDefault(); return true; }
+        if (e.key.toLowerCase() === 'r') { resetDemo(); return true; }
+        return false;
+      };
+      demoOnLeave = leaving => { if (leaving.contains(attentionDemo)) resetDemo(); };
+      resetDemo();
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
